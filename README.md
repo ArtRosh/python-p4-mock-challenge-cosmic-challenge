@@ -1,52 +1,66 @@
-# Flask Mock Challenge - Cosmic Travel (No Tests!)
+# Flask Mock Challenge - Cosmic Travel
 
 It is the year 2100 and you run an interplanetary space travel agency. You are
 building a website to book scientists on missions to other planets.
 
-In this repo, there is a Flask application with some features built out. There
-is also a fully built React frontend application, so you can test if your API is
-working.
+In this repo:
 
-Your job is to build out the Flask API to add the functionality described in the
-deliverables below.
+- There is a Flask application with some features built out.
+- There is a fully built React frontend application.
+- There are tests included which you can run using `pytest -x`.
+- There is a file `mock-challenge-cosmic-challenge.postman_collection.json` that
+  contains a Postman collection of requests for testing each route you will
+  implement.
 
-***
+Depending on your preference, you can either check your API by:
+
+- Using Postman to make requests
+- Running `pytest -x` and seeing if your code passes the tests
+- Running the React application in the browser and interacting with the API via
+  the frontend
+
+You can import `mock-challenge-cosmic-challenge.postman_collection.json` into
+Postman by pressing the `Import` button.
+
+![import postman](https://curriculum-content.s3.amazonaws.com/6130/phase4-mock-challenge/domain.png)
+
+Select `Upload Files`, navigate to this repo folder, and select
+`mock-challenge-cosmic-challenge.postman_collection.json` as the file to import.
+
+---
 
 ## Setup
 
 To download the dependencies for the frontend and backend, run:
 
 ```console
-$ pipenv install; pipenv shell
-$ npm install --prefix client
+pipenv install
+pipenv shell
+npm install --prefix client
 ```
 
-There is some starter code in the `seed.py` file so that once you've
-generated the models, you'll be able to create data to test your application.
-
-You can run your Flask API on [`localhost:5555`](http://localhost:5555) by running:
+You can run your Flask API on [`localhost:5555`](http://localhost:5555) by
+running:
 
 ```console
-$ python app.py
+python server/app.py
 ```
 
-You can run your React app on [`localhost:4000`](http://localhost:4000) by running:
+You can run your React app on [`localhost:4000`](http://localhost:4000) by
+running:
 
-```console
-$ npm start --prefix client
+```sh
+npm start --prefix client
 ```
 
-You are not being assessed on React, and you don't have to update any of the React
-code; the frontend code is available just so that you can test out the behavior
-of your API in a realistic setting.
+You are not being assessed on React, and you don't have to update any of the
+React code; the frontend code is available just so that you can test out the
+behavior of your API in a realistic setting.
 
-Depending on your preference, you can either check your progress by:
+Your job is to build out the Flask API to add the functionality described in the
+deliverables below.
 
-- Running the React application in the browser and interacting with the API via
-  the frontend
-- Running the Flask server and using Postman (or equivalent API client) to make requests
-
-***
+---
 
 ## Models
 
@@ -55,46 +69,67 @@ scientists can book their missions. **In a given mission, one scientist will
 visit one planet**. Over their careers, **scientists will visit many planets**
 and **planets will be visited by many scientists**.
 
-You need to create the following relationships:
+You will implement an API for the following data model:
 
-- A `Scientist` has many `Missions`, and has many `Planet`s through `Mission`s
-- An `Planet` has many `Missions`, and has many `Scientist`s through `Mission`s
-- A `Mission` belongs to a `Scientist` and belongs to a `Planet`
+![cosmic_model](https://curriculum-content.s3.amazonaws.com/6130/phase4-mock-challenge/domain.png)
 
-Start by creating the models and migrations for the following database tables:
-
-![cosmic_erd](https://curriculum-content.s3.amazonaws.com/phase-4/mock-challenge-cosmic-challenge/cosmic_erd.png)
-
-Add any code needed in the model files to establish the relationships.
-
-Then, run the migrations and seed file:
+The file `server/models.py` defines the model classes **without relationships**.
+Use the following commands to create the initial database `app.db`:
 
 ```console
-$ flask db revision --autogenerate -m'create tables'
-$ flask db upgrade head
+export FLASK_APP=server/app.py
+flask db init
+flask db upgrade head
+```
+
+Now you can implement the relationships as shown in the ER Diagram:
+
+- A `Scientist` has (visits) many `Planets` through `Mission`s
+- An `Planet` has (is visited by) many `Scientist`s through `Mission`s
+- A `Mission` belongs to a `Scientist` and belongs to a `Planet`
+
+Update `server/models.py` to establish the model relationships. Since a
+`Mission` belongs to a `Scientist` and a `Planet`, configure the model to
+cascade deletes.
+
+Set serialization rules to limit the recursion depth.
+
+Run the migrations and seed the database:
+
+```console
+flask db revision --autogenerate -m 'message'
+flask db upgrade head
+python server/seed.py
 ```
 
 > If you aren't able to get the provided seed file working, you are welcome to
 > generate your own seed data to test the application.
 
-***
+---
+
+---
 
 ## Validations
 
 Add validations to the `Scientist` model:
 
 - must have a `name`, and a `field_of_study`
-- `name`s must be unique
 
 Add validations to the `Mission` model:
 
-- must have a `name`, a `scientist` and a `planet`
-- a `scientist` cannot join the same `mission` twice
+- must have a `name`, a `scientist_id` and a `planet_id`
 
 ## Routes
 
 Set up the following routes. Make sure to return JSON data in the format
 specified along with the appropriate HTTP verb.
+
+Recall you can specify fields to include or exclude when serializing a model
+instance to a dictionary using to_dict() (don't forget the comma if specifying a
+single field).
+
+NOTE: If you choose to implement a Flask-RESTful app, you need to add code to
+instantiate the `Api` class in server/app.py.
 
 ### GET /scientists
 
@@ -107,47 +142,51 @@ scientist.
   {
     "id": 1,
     "name": "Mel T. Valent",
-    "field_of_study": "xenobiology",
-    "avatar": "https://robohash.org/mel_t_valent?set=set5"
+    "field_of_study": "xenobiology"
   },
   {
     "id": 2,
     "name": "P. Legrange",
-    "field_of_study": "orbital mechanics",
-    "avatar": "https://robohash.org/p_legrange?set=set5"
+    "field_of_study": "orbital mechanics"
   }
 ]
 ```
 
 ### GET /scientists/<int:id>
 
-If the `Scientist` exists, return JSON data in the format below. **Note**: you will
-need to serialize the data for this response differently than for the
-`GET /scientists` route. Make sure to include an array of missions for each
-scientist.
+If the `Scientist` exists, return JSON data in the format below. Make sure to
+include a list of missions for the scientist.
 
 ```json
-{
-  "id": 1,
-  "name": "Mel T. Valent",
-  "field_of_study": "xenobiology",
-  "avatar": "https://robohash.org/mel_t_valent?set=set5",
-  "planets": [
-    {
-      "id": 1,
-      "name": "TauCeti E",
-      "distance_from_earth": "12 light years",
-      "nearest_star": "TauCeti",
-      "image": "planet3"
-    },
-    {
-      "id": 2,
-      "name": "Maxxor",
-      "distance_from_earth": "9 parsecs",
-      "nearest_star": "Canus Minor",
-      "image": "planet7"
-    }
-  ]
+"field_of_study": "Orbits",
+    "id": 1,
+    "name": "Joseph Richard",
+    "missions": [
+        {
+            "id": 1,
+            "name": "Explore Planet X.",
+            "planet": {
+                "distance_from_earth": 302613474,
+                "id": 8,
+                "name": "X",
+                "nearest_star": "Shiny Star"
+            },
+            "planet_id": 8,
+            "scientist_id": 1
+        },
+        {
+            "id": 10,
+            "name": "Explore Planet Y.",
+            "planet": {
+                "distance_from_earth": 1735242898,
+                "id": 14,
+                "name": "Y",
+                "nearest_star": "Dim Star"
+            },
+            "planet_id": 14,
+            "scientist_id": 1
+        }
+    ]
 }
 ```
 
@@ -156,7 +195,7 @@ the appropriate HTTP status code:
 
 ```json
 {
-  "error": "404: Scientist not found"
+  "error": "Scientist not found"
 }
 ```
 
@@ -167,9 +206,8 @@ following properties in the body of the request:
 
 ```json
 {
-  "name": "Evan T'Horizon",
-  "field_of_study": "astronavigation",
-  "avatar": "https://robohash.org/evan_thorizon?set=set5"
+  "name": "Evan Horizon",
+  "field_of_study": "astronavigation"
 }
 ```
 
@@ -179,18 +217,17 @@ If the `Scientist` is created successfully, send back a response with the new
 ```json
 {
   "id": 3,
-  "name": "Evan T'Horizon",
-  "field_of_study": "astronavigation",
-  "avatar": "https://robohash.org/evan_thorizon?set=set5"
+  "name": "Evan Horizon",
+  "field_of_study": "astronavigation"
 }
 ```
 
-If the `Scientist` is **not** created successfully, return the following JSON data,
-along with the appropriate HTTP status code:
+If the `Scientist` is **not** created successfully due to validation errors,
+return the following JSON data, along with the appropriate HTTP status code:
 
 ```json
 {
-  "error": "400: Validation error"
+  "errors": ["validation errors"]
 }
 ```
 
@@ -201,34 +238,33 @@ with one or more of the following properties in the body of the request:
 
 ```json
 {
-  "name": "Bevan T'Horizon",
-  "field_of_study": "warp drive tech",
-  "avatar": "https://robohash.org/bevan_thorizon?set=set5"
+  "name": "Bevan Horizon",
+  "field_of_study": "warp drive tech"
 }
 ```
 
-If the `Scientist` is updated successfully, send back a response with the updated
-`Scientist` and a 202 `accepted` status code:
+If the `Scientist` is updated successfully, send back a response with the
+updated `Scientist` and a 202 `accepted` status code:
 
 ```json
 {
   "id": 2,
-  "name": "Bevan T'Horizon",
-  "field_of_study": "warp drive tech",
-  "avatar": "https://robohash.org/bevan_thorizon?set=set5"
+  "name": "Bevan Horizon",
+  "field_of_study": "warp drive tech"
 }
 ```
 
-If the `Scientist` is **not** updated successfully, return the following JSON data,
-along with the appropriate HTTP status code:
+If the `Scientist` is **not** updated successfully, return the following JSON
+data, along with the appropriate HTTP status code:
 
 ```json
 {
-  "error": "400: Validation error"
+  "errors": ["validation errors"]
 }
 ```
 
-OR, given an invalid ID, the appropriate HTTP status code, and the following JSON:
+OR, given an invalid ID, the appropriate HTTP status code, and the following
+JSON:
 
 ```json
 {
@@ -239,9 +275,9 @@ OR, given an invalid ID, the appropriate HTTP status code, and the following JSO
 ### DELETE /scientists/<int:id>
 
 If the `Scientist` exists, it should be removed from the database, along with
-any `Mission`s that are associated with it (a `Mission` belongs
-to an `Scientist`, so you need to delete the `Mission`s before the
-`Scientist` can be deleted).
+any `Mission`s that are associated with it. If you did not set up your models to
+cascade deletes, you need to delete associated `Mission`s before the `Scientist`
+can be deleted.
 
 After deleting the `Scientist`, return an _empty_ response body, along with the
 appropriate HTTP status code.
@@ -251,7 +287,7 @@ the appropriate HTTP status code:
 
 ```json
 {
-  "error": "404: Scientist not found"
+  "error": "Scientist not found"
 }
 ```
 
@@ -266,16 +302,14 @@ planet.
   {
     "id": 1,
     "name": "TauCeti E",
-    "distance_from_earth": "12 light years",
-    "nearest_star": "TauCeti",
-    "image": "planet3"
+    "distance_from_earth": 1234567,
+    "nearest_star": "TauCeti"
   },
   {
     "id": 2,
     "name": "Maxxor",
-    "distance_from_earth": "9 parsecs",
-    "nearest_star": "Canus Minor",
-    "image": "planet7"
+    "distance_from_earth": 99887766,
+    "nearest_star": "Canus Minor"
   }
 ]
 ```
@@ -293,25 +327,34 @@ following properties in the body of the request:
 }
 ```
 
-If the `Mission` is created successfully, send back a response with the `planet`
-associated with the new `Mission` (contrary to convention, which normally
-dictates the response would include data about the _mission_ that was created):
+If the `Mission` is created successfully, send back a response about the new
+mission:
 
 ```json
 {
-  "id": 2,
-  "name": "Maxxor",
-  "distance_from_earth": "9 parsecs",
-  "nearest_star": "Canus Minor",
-  "image": "planet7"
+  "id": 21,
+  "name": "Project Terraform",
+  "planet": {
+    "distance_from_earth": 9037395591,
+    "id": 2,
+    "name": "Planet X",
+    "nearest_star": "Krystal"
+  },
+  "planet_id": 2,
+  "scientist": {
+    "field_of_study": "Time travel.",
+    "id": 1,
+    "name": "Jeremy Oconnor"
+  },
+  "scientist_id": 1
 }
 ```
 
-If the `Mission` is **not** created successfully, return the following JSON data,
-along with the appropriate HTTP status code:
+If the `Mission` is **not** created successfully, return the following JSON
+data, along with the appropriate HTTP status code:
 
 ```json
 {
-  "error": "400: Validation error"
+  "errors": ["validation errors"]
 }
 ```
