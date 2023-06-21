@@ -358,3 +358,18 @@ data, along with the appropriate HTTP status code:
   "errors": ["validation errors"]
 }
 ```
+
+---
+
+### (Optional FYI) React `useCallback` hook
+
+The `ScientistDetail` component in the React app uses the `useCallback` hook to
+memoize the function that fetches a scientist by id. The scientist detail is
+fetched when the component initially renders, and is fetched again after
+updating the scientist detail. `useCallback` caches the function to avoid
+recreating it .
+
+### Resources
+
+- [useCallback API](https://react.dev/reference/react/useCallback)
+- [Should you add useCallback everywhere?](https://react.dev/reference/react/useCallback#should-you-add-usecallback-everywhere)
