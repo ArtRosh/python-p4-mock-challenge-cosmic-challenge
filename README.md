@@ -77,7 +77,7 @@ The file `server/models.py` defines the model classes **without relationships**.
 Use the following commands to create the initial database `app.db`:
 
 ```console
-export FLASK_APP=server/app.py
+cd server
 flask db init
 flask db migrate
 flask db upgrade head
@@ -98,9 +98,9 @@ Set serialization rules to limit the recursion depth.
 Run the migrations and seed the database:
 
 ```console
-flask db revision --autogenerate -m 'message'
+flask db migrate
 flask db upgrade head
-python server/seed.py
+python seed.py
 ```
 
 > If you aren't able to get the provided seed file working, you are welcome to
