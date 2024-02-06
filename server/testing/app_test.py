@@ -69,7 +69,7 @@ class TestApp:
             assert response.status_code == 404
 
     def test_creates_scientist(self):
-        '''creates one scientist using a name and field of study with a POST request to /campers.'''
+        '''creates one scientist using a name and field of study with a POST request to /scientists.'''
 
         with app.app_context():
             fake = Faker()
